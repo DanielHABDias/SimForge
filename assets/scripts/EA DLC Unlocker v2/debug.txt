@@ -1,0 +1,137 @@
+++ dirname setup_linux.sh
++ cd .
++ STEAM_PATHS=("$HOME/.steam/steam" "$HOME/.local/share/Steam" "$HOME/snap/steam/common/.local/share/Steam" "$HOME/steam/root" "$HOME/steam" "$HOME/.var/app/com.valvesoftware.Steam/.steam/steam" "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam" "$HOME/.var/app/com.valvesoftware.Steam/.steam/root" "$HOME/.var/app/com.valvesoftware.Steam/.steam")
++ LUTRIS_PATH=/home/daniel/Games
++ BOTTLES_PATHS=("$HOME/.var/app/com.usebottles.bottles/data/bottles/bottles" "$HOME/.local/share/bottles")
++ KNOWN_IDS=("1238060:Dead Space 3" "1426210:It Takes Two" "1222680:Need For Speed Heat" "1262560:Need For Speed Most Wanted" "1262580:Need For Speed Payback" "1846380:Need For Speed Unbound" "1172380:STAR WARS Jedi Fallen Order" "1774580:STAR WARS Jedi Survivor" "1222670:The Sims 4")
++ ea_app_parent='drive_c/Program Files/Electronic Arts/EA Desktop'
++ unlocker_dir='anadius/EA DLC Unlocker v2'
++ DLL_NAME=version.dll
++ MAIN_CONFIG=config.ini
++ EA_APP='drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop'
++ EA_APP_OLD='drive_c/Program Files/Electronic Arts/EA Desktop/StagedEADesktop/EA Desktop'
++ USERS_DIR=drive_c/users
++ APPDATA_DIR='AppData/Roaming/anadius/EA DLC Unlocker v2'
++ LOCALAPPDATA_DIR='AppData/Local/anadius/EA DLC Unlocker v2'
++ unset ea_app_parent unlocker_dir
++ CLIENT=ea_app
++ SRC_DLL=ea_app/version.dll
++ SRC_CONFIG=config.ini
++ FILE_MISSING_MESSAGE='missing, you didn'\''t extract all files.'
++ ALL_PREFIX_PATHS=()
++ ALL_PREFIX_NAMES=()
++ ALL_PREFIX_CONFIGS=()
++ ALL_PREFIX_USERS=()
++ get_wine_prefix
++ local name
++ '[' -z '' ']'
++ WINEPREFIX=/home/daniel/.wine
++ name='Default Wine prefix'
++ check_prefix /home/daniel/.wine 'Default Wine prefix' wine
++ local path name src
++ path=/home/daniel/.wine
++ name='Default Wine prefix'
++ src=wine
++ echo 'check_prefix: path=/home/daniel/.wine src=wine'
+check_prefix: path=/home/daniel/.wine src=wine
++ '[' '!' -d '/home/daniel/.wine/drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop' ']'
++ return
++ get_lutris_prefixes
++ local prefix
++ for prefix in "$LUTRIS_PATH"/*
+++ basename '/home/daniel/Games/*'
++ check_prefix '/home/daniel/Games/*' '*' Lutris
++ local path name src
++ path='/home/daniel/Games/*'
++ name='*'
++ src=Lutris
++ echo 'check_prefix: path=/home/daniel/Games/* src=Lutris'
+check_prefix: path=/home/daniel/Games/* src=Lutris
++ '[' '!' -d '/home/daniel/Games/*/drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop' ']'
++ return
++ get_bottles_prefixes
++ local bottles_path prefix
++ for bottles_path in ${BOTTLES_PATHS[@]}
++ for prefix in "$bottles_path"/*
+++ basename '/home/daniel/.var/app/com.usebottles.bottles/data/bottles/bottles/*'
++ check_prefix '/home/daniel/.var/app/com.usebottles.bottles/data/bottles/bottles/*' '*' Bottles
++ local path name src
++ path='/home/daniel/.var/app/com.usebottles.bottles/data/bottles/bottles/*'
++ name='*'
++ src=Bottles
++ echo 'check_prefix: path=/home/daniel/.var/app/com.usebottles.bottles/data/bottles/bottles/* src=Bottles'
+check_prefix: path=/home/daniel/.var/app/com.usebottles.bottles/data/bottles/bottles/* src=Bottles
++ '[' '!' -d '/home/daniel/.var/app/com.usebottles.bottles/data/bottles/bottles/*/drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop' ']'
++ return
++ for bottles_path in ${BOTTLES_PATHS[@]}
++ for prefix in "$bottles_path"/*
+++ basename '/home/daniel/.local/share/bottles/*'
++ check_prefix '/home/daniel/.local/share/bottles/*' '*' Bottles
++ local path name src
++ path='/home/daniel/.local/share/bottles/*'
++ name='*'
++ src=Bottles
++ echo 'check_prefix: path=/home/daniel/.local/share/bottles/* src=Bottles'
+check_prefix: path=/home/daniel/.local/share/bottles/* src=Bottles
++ '[' '!' -d '/home/daniel/.local/share/bottles/*/drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop' ']'
++ return
++ get_steam_prefixes
++ local steamapps_path steam_path tmp library library_steamapps prefix
++ for steam_path in ${STEAM_PATHS[@]}
++ tmp=/home/daniel/.steam/steam/steamapps
++ '[' -d /home/daniel/.steam/steam/steamapps ']'
++ for steam_path in ${STEAM_PATHS[@]}
++ tmp=/home/daniel/.local/share/Steam/steamapps
++ '[' -d /home/daniel/.local/share/Steam/steamapps ']'
++ for steam_path in ${STEAM_PATHS[@]}
++ tmp=/home/daniel/snap/steam/common/.local/share/Steam/steamapps
++ '[' -d /home/daniel/snap/steam/common/.local/share/Steam/steamapps ']'
++ for steam_path in ${STEAM_PATHS[@]}
++ tmp=/home/daniel/steam/root/steamapps
++ '[' -d /home/daniel/steam/root/steamapps ']'
++ for steam_path in ${STEAM_PATHS[@]}
++ tmp=/home/daniel/steam/steamapps
++ '[' -d /home/daniel/steam/steamapps ']'
++ for steam_path in ${STEAM_PATHS[@]}
++ tmp=/home/daniel/.var/app/com.valvesoftware.Steam/.steam/steam/steamapps
++ '[' -d /home/daniel/.var/app/com.valvesoftware.Steam/.steam/steam/steamapps ']'
++ steamapps_path=/home/daniel/.var/app/com.valvesoftware.Steam/.steam/steam/steamapps
++ break
++ '[' -z /home/daniel/.var/app/com.valvesoftware.Steam/.steam/steam/steamapps ']'
++ read -r library
+++ grep -Po '"path"\s+"\K([^"]+)' /home/daniel/.var/app/com.valvesoftware.Steam/.steam/steam/steamapps/libraryfolders.vdf
++ library_steamapps=/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps
++ for prefix in "$library_steamapps/compatdata"/*
+++ basename /home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1222670
++ check_prefix /home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1222670/pfx 1222670 steam /home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps
++ local path name src
++ path=/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1222670/pfx
++ name=1222670
++ src=steam
++ echo 'check_prefix: path=/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1222670/pfx src=steam'
+check_prefix: path=/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1222670/pfx src=steam
++ '[' '!' -d '/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1222670/pfx/drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop' ']'
++ return
++ for prefix in "$library_steamapps/compatdata"/*
+++ basename /home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1493710
++ check_prefix /home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1493710/pfx 1493710 steam /home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps
++ local path name src
++ path=/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1493710/pfx
++ name=1493710
++ src=steam
++ echo 'check_prefix: path=/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1493710/pfx src=steam'
+check_prefix: path=/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1493710/pfx src=steam
++ '[' '!' -d '/home/daniel/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata/1493710/pfx/drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop' ']'
++ return
++ read -r library
++ clear
+[H[2J[3J+ '[' 0 -eq 0 ']'
++ fail 'No prefixes found. Run the game once and then try again.'
++ printf '\e[37;41mFatal error:\e[0m '
+[37;41mFatal error:[0m + warn 'No prefixes found. Run the game once and then try again.'
++ printf '\e[31mNo prefixes found. Run the game once and then try again.\e[0m\n'
+[31mNo prefixes found. Run the game once and then try again.[0m
++ echo ''
+
++ read -s -p 'Press enter to continue...'
+Press enter to continue...
