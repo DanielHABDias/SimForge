@@ -9,11 +9,18 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/DanielHABDias/SimForge/internal/config"
 	"github.com/DanielHABDias/SimForge/internal/finder"
+	"github.com/DanielHABDias/SimForge/internal/transfer"
 	"github.com/DanielHABDias/SimForge/internal/unlocker"
 )
 
 func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
 	items, err := finder.Find()
 	if err != nil {
 		log.Fatalf("Error detecting installations: %v", err)
@@ -28,15 +35,15 @@ func main() {
 
 	// If only one installation, use it directly.
 	if len(items) == 1 {
-		runMenu(&items[0])
+		runMenu(&items[0], cfg)
 		return
 	}
 
 	// Multiple installations: show selection.
-	showPrefixMenu(items)
+	showPrefixMenu(items, cfg)
 }
 
-func showPrefixMenu(items []finder.Installation) {
+func showPrefixMenu(items []finder.Installation, cfg *config.Config) {
 	for {
 		fmt.Println("Multiple wine/proton prefixes found!")
 		fmt.Println("Which one do you want to manage?")
@@ -67,11 +74,11 @@ func showPrefixMenu(items []finder.Installation) {
 			fmt.Println()
 			continue
 		}
-		runMenu(&items[idx-1])
+		runMenu(&items[idx-1], cfg)
 	}
 }
 
-func runMenu(inst *finder.Installation) {
+func runMenu(inst *finder.Installation, cfg *config.Config) {
 	// Build unlocker manager for this installation.
 	mgr, err := unlocker.New(*inst)
 	if err != nil {
@@ -85,6 +92,8 @@ func runMenu(inst *finder.Installation) {
 
 		// Header.
 		fmt.Printf("Prefix: %s (%s)\n", inst.Launcher, inst.PrefixPath)
+		fmt.Printf("The Sims 4 root: %s\n", orNA(inst.Sims4Root))
+		fmt.Printf("The Sims 4 Mods: %s\n", orNA(inst.Sims4Mods))
 
 		fmt.Printf("DLC Unlocker ")
 		if mgr.IsInstalled() {
@@ -100,11 +109,22 @@ func runMenu(inst *finder.Installation) {
 		fmt.Println()
 
 		fmt.Println()
+		fmt.Println("  \x1b[36m--- DLC Unlocker ---\x1b[0m")
 		fmt.Printf("  \x1b[33m1\x1b[0m. Install EA DLC Unlocker\n")
 		fmt.Printf("  \x1b[33m2\x1b[0m. Add/Update game config\n")
 		fmt.Printf("  \x1b[33m3\x1b[0m. Open folder with installed configs\n")
 		fmt.Printf("  \x1b[33m4\x1b[0m. Open folder with log file\n")
 		fmt.Printf("  \x1b[33m5\x1b[0m. Uninstall EA DLC Unlocker\n")
+
+		fmt.Println()
+		fmt.Println("  \x1b[36m--- The Sims 4 Content ---\x1b[0m")
+		fmt.Printf("  \x1b[33m6\x1b[0m. Transfer DLCs to game root\n")
+		fmt.Printf("  \x1b[33m7\x1b[0m. Transfer mods to Mods folder\n")
+
+		fmt.Println()
+		fmt.Println("  \x1b[36m--- Configuration ---\x1b[0m")
+		fmt.Printf("  \x1b[33m8\x1b[0m. Show/Edit paths (dlc_path, mods_path)\n")
+
 		fmt.Printf("  \x1b[31mq\x1b[0m. Quit\n")
 
 		choice := readInput("Type the number of your choice and press Enter: ")
@@ -121,6 +141,12 @@ func runMenu(inst *finder.Installation) {
 			handleOpenLogs(mgr)
 		case "5":
 			handleUninstall(mgr)
+		case "6":
+			handleTransferDLCs(inst, cfg)
+		case "7":
+			handleTransferMods(inst, cfg)
+		case "8":
+			handleEditConfig(cfg)
 		case "q":
 			return
 		default:
@@ -215,6 +241,167 @@ func handleUninstall(mgr *unlocker.Manager) {
 	waitEnter()
 }
 
+// handleTransferDLCs copies DLCs from the configured source into the game root,
+// extracting any archives found.
+func handleTransferDLCs(inst *finder.Installation, cfg *config.Config) {
+	src := resolveSourcePath(cfg.DLCPath, "Where are the downloaded DLCs?")
+	if src == "" {
+		return
+	}
+
+	if inst.Sims4Root == "" {
+		inst.Sims4Root = promptAdditive("Could not auto-detect The Sims 4 game folder. Enter its path: ")
+		if inst.Sims4Root == "" {
+			fmt.Println("\x1b[31mNo game root provided. Aborting.\x1b[0m")
+			waitEnter()
+			return
+		}
+	}
+
+	count, err := transfer.CountFiles(src)
+	if err != nil {
+		fmt.Printf("\x1b[31mError counting files: %v\x1b[0m\n", err)
+		waitEnter()
+		return
+	}
+	fmt.Printf("\x1b[33mFound %d file(s) in %s\x1b[0m\n", count, src)
+
+	fmt.Printf("Transferring DLCs to %s...\n", inst.Sims4Root)
+	res, err := transfer.CopyDLCs(src, inst.Sims4Root)
+	if err != nil {
+		fmt.Printf("\x1b[31mError: %v\x1b[0m\n", err)
+		waitEnter()
+		return
+	}
+	fmt.Printf("\x1b[32mDone! Copied %d file(s), extracted %d archive(s).\x1b[0m\n",
+		res.CopiedFiles, res.ExtractedZips)
+	waitEnter()
+}
+
+// handleTransferMods copies mods from the configured source into the game Mods
+// folder, extracting any archives found.
+func handleTransferMods(inst *finder.Installation, cfg *config.Config) {
+	src := resolveSourcePath(cfg.ModsPath, "Where are the downloaded mods?")
+	if src == "" {
+		return
+	}
+
+	if inst.Sims4Root == "" {
+		inst.Sims4Root = promptAdditive("Could not auto-detect The Sims 4 game folder. Enter its path: ")
+		if inst.Sims4Root == "" {
+			fmt.Println("\x1b[31mNo game root provided. Aborting.\x1b[0m")
+			waitEnter()
+			return
+		}
+	}
+
+	// Ensure the Mods folder exists.
+	if inst.Sims4Mods == "" {
+		inst.Sims4Mods = promptAdditive("Enter the The Sims 4 Mods folder path: ")
+		if inst.Sims4Mods == "" {
+			fmt.Println("\x1b[31mNo Mods folder provided. Aborting.\x1b[0m")
+			waitEnter()
+			return
+		}
+	}
+	if err := os.MkdirAll(inst.Sims4Mods, 0o755); err != nil {
+		fmt.Printf("\x1b[31mError creating Mods folder: %v\x1b[0m\n", err)
+		waitEnter()
+		return
+	}
+
+	count, err := transfer.CountFiles(src)
+	if err != nil {
+		fmt.Printf("\x1b[31mError counting files: %v\x1b[0m\n", err)
+		waitEnter()
+		return
+	}
+	fmt.Printf("\x1b[33mFound %d file(s) in %s\x1b[0m\n", count, src)
+
+	fmt.Printf("Transferring mods to %s...\n", inst.Sims4Mods)
+	res, err := transfer.CopyMods(src, inst.Sims4Mods)
+	if err != nil {
+		fmt.Printf("\x1b[31mError: %v\x1b[0m\n", err)
+		waitEnter()
+		return
+	}
+	fmt.Printf("\x1b[32mDone! Copied %d file(s), extracted %d archive(s).\x1b[0m\n",
+		res.CopiedFiles, res.ExtractedZips)
+	waitEnter()
+}
+
+// handleEditConfig shows the current paths and lets the user change them.
+func handleEditConfig(cfg *config.Config) {
+	fmt.Println("Current configuration:")
+	fmt.Printf("  dlc_path = \x1b[36m%s\x1b[0m\n", cfg.DLCPath)
+	fmt.Printf("  mods_path = \x1b[36m%s\x1b[0m\n", cfg.ModsPath)
+	fmt.Printf("  (config file: %s)\n", config.Path())
+	fmt.Println()
+
+	choice := readInput("Edit dlc_path? [y/N]: ")
+	if strings.EqualFold(choice, "y") {
+		newPath := readInput(fmt.Sprintf("New dlc_path (current: %s): ", cfg.DLCPath))
+		if newPath != "" {
+			cfg.DLCPath = newPath
+		}
+	}
+
+	choice = readInput("Edit mods_path? [y/N]: ")
+	if strings.EqualFold(choice, "y") {
+		newPath := readInput(fmt.Sprintf("New mods_path (current: %s): ", cfg.ModsPath))
+		if newPath != "" {
+			cfg.ModsPath = newPath
+		}
+	}
+
+	if err := cfg.Save(); err != nil {
+		fmt.Printf("\x1b[31mError saving config: %v\x1b[0m\n", err)
+		waitEnter()
+		return
+	}
+	fmt.Println("\x1b[32mConfiguration saved!\x1b[0m")
+	waitEnter()
+}
+
+// resolveSourcePath returns the configured path if it exists, otherwise asks
+// the user for a valid path.
+func resolveSourcePath(configured, prompt string) string {
+	if configured != "" && directoryExistsPath(configured) {
+		return configured
+	}
+
+	for {
+		current := " (configured: " + configured + ")"
+		if configured == "" {
+			current = ""
+		}
+		p := readInput(prompt + current + ": ")
+		if p == "" {
+			return ""
+		}
+		if directoryExistsPath(p) {
+			return p
+		}
+		fmt.Printf("\x1b[31mPath not found: %s\x1b[0m\n", p)
+	}
+}
+
+func directoryExistsPath(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
+func promptAdditive(prompt string) string {
+	return readInput(prompt)
+}
+
+func orNA(s string) string {
+	if s == "" {
+		return "\x1b[31mnot detected\x1b[0m"
+	}
+	return fmt.Sprintf("\x1b[36m%s\x1b[0m", s)
+}
+
 // ----- helpers -----
 
 func readInput(prompt string) string {
@@ -245,4 +432,3 @@ func init() {
 		os.Exit(0)
 	}()
 }
-

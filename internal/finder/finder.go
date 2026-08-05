@@ -19,6 +19,12 @@ type Installation struct {
 
 	ConfigPath string // Roaming\anadius\EA DLC Unlocker v2
 	LogsPath   string // Local\anadius\EA DLC Unlocker v2
+
+	// Sims4Root is the root folder of the The Sims 4 game installation,
+	// where DLC files are placed.
+	Sims4Root string
+	// Sims4Mods is the game's Mods folder (Documents\Electronic Arts\The Sims 4\Mods).
+	Sims4Mods string
 }
 
 // Find returns all detected EA/Origin installations for the current OS.

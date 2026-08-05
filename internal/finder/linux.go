@@ -40,6 +40,7 @@ func checkPrefix(path string, launcher string, name string) *Installation {
 		PrefixPath: path,
 	}
 	applyEAInfo(inst, ea)
+	resolveSims4(inst)
 	return inst
 }
 

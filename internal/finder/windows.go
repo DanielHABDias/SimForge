@@ -36,7 +36,7 @@ func getRegistryPath(keyPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-defer key.Close()
+	defer key.Close()
 
 	value, _, err := key.GetStringValue("ClientPath")
 	return value, err
@@ -64,5 +64,7 @@ func createWindowsInstallation(client, name, clientPath string) Installation {
 		staged := filepath.Join(filepath.Dir(clientPath), "StagedEADesktop", "EA Desktop")
 		inst.DllPath2 = filepath.Join(staged, "version.dll")
 	}
+
+	resolveSims4(&inst)
 	return inst
 }

@@ -21,13 +21,11 @@ var KnownGames = map[string]string{
 	"1222670": "The Sims 4",
 }
 
-
 func GetGameName(appID string) string {
 
 	if name, exists := KnownGames[appID]; exists {
 		return name
 	}
-
 
 	return "Unknown prefix (" + appID + ")"
 }

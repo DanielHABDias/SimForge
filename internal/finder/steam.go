@@ -105,6 +105,7 @@ func findProtonPrefixes(steamApps string) []Installation {
 
 		// Only include prefixes that actually contain EA app/Origin.
 		if installation.ClientPath != "" {
+			resolveSims4(&installation)
 			installations = append(installations, installation)
 		}
 	}

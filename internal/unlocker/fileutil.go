@@ -53,4 +53,3 @@ func removeDirIfEmpty(path string) {
 		_ = os.Remove(path)
 	}
 }
-
