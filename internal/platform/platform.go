@@ -1,6 +1,9 @@
 package platform
 
-import "runtime"
+import (
+	"os"
+	"runtime"
+)
 
 type OS string
 
