@@ -54,7 +54,7 @@ func lookForTheSims4(common string) string {
 }
 
 // promptPath asks the user to type a directory path.
-func promptPath(prompt string) string {
+func promptPathImpl(prompt string) string {
 	fmt.Print(prompt)
 	reader := bufio.NewReader(os.Stdin)
 	line, _ := reader.ReadString('\n')

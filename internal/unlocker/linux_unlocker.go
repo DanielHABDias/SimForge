@@ -32,7 +32,7 @@ func (o *linuxDllOverrider) Apply() error {
 	}
 
 	// Append the override to the end of user.reg.
-	entry := fmt.Sprintf(`[Software\\\\Wine\\\\DllOverrides] %d`, timestamp())
+	entry := fmt.Sprintf(`[Software\\Wine\\DllOverrides] %d`, timestamp())
 	content := fmt.Sprintf("\n%s\n\"version\"=\"native,builtin\"\n", entry)
 
 	f, err := os.OpenFile(reg, os.O_APPEND|os.O_WRONLY, 0)

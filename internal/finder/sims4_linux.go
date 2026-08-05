@@ -16,13 +16,13 @@ func sims4Candidates(inst *Installation) []string {
 
 	// Steam Proton: the game lives in the Steam library, not the prefix.
 	if inst.AppID == "1222670" && inst.PrefixPath != "" {
-		// Walk up to find the steamapps/common folder.
+		// The prefix is <library>/steamapps/compatdata/1222670/pfx, so the
+		// game files are in <library>/common/The Sims 4.
 		prefix := inst.PrefixPath
-		// The prefix is usually <library>/steamapps/compatdata/1222670/pfx
-		compatData := filepath.Dir(filepath.Dir(prefix))
+		compatData := filepath.Dir(filepath.Dir(prefix)) // <library>/steamapps/compatdata
 		if strings.HasSuffix(filepath.ToSlash(compatData), "compatdata") {
-			library := filepath.Dir(filepath.Dir(compatData)) // steamapps
-			common := filepath.Join(filepath.Dir(library), "common")
+			steamapps := filepath.Dir(compatData)                      // <library>/steamapps
+			common := filepath.Join(filepath.Dir(steamapps), "common") // <library>/common
 			if root := lookForTheSims4(common); root != "" {
 				candidates = append(candidates, root)
 			}
@@ -71,7 +71,7 @@ func lookForTheSims4(common string) string {
 }
 
 // promptPath asks the user to type a directory path.
-func promptPath(prompt string) string {
+func promptPathImpl(prompt string) string {
 	fmt.Print(prompt)
 	reader := bufio.NewReader(os.Stdin)
 	line, _ := reader.ReadString('\n')

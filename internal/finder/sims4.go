@@ -4,6 +4,13 @@ import (
 	"path/filepath"
 )
 
+// promptPath is the interactive prompt used when the game root cannot be
+// auto-detected. It is a variable so tests can stub it; the default
+// implementation is provided by the platform-specific files.
+var promptPath = func(prompt string) string {
+	return promptPathImpl(prompt)
+}
+
 // resolveSims4 populates Sims4Root and Sims4Mods for an installation by trying
 // the platform-specific candidates and falling back to an interactive prompt.
 func resolveSims4(inst *Installation) {
