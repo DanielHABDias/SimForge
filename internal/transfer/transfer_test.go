@@ -1,7 +1,9 @@
 package transfer
 
 import (
+	"archive/tar"
 	"archive/zip"
+	"compress/gzip"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -264,6 +266,194 @@ func TestExtractPreservesContent(t *testing.T) {
 	}
 	if string(got) != want {
 		t.Errorf("content = %q, want %q", string(got), want)
+	}
+}
+
+// createTar creates a .tar archive at tarPath containing the given entries
+// (name -> content).
+func createTar(t *testing.T, tarPath string, entries map[string]string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(tarPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(tarPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	tw := tar.NewWriter(f)
+	for name, content := range entries {
+		hdr := &tar.Header{
+			Name: name,
+			Mode: 0o644,
+			Size: int64(len(content)),
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tw.Write([]byte(content)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// createTarGz creates a .tar.gz archive at path containing the given entries.
+func createTarGz(t *testing.T, path string, entries map[string]string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	gz := gzip.NewWriter(f)
+	tw := tar.NewWriter(gz)
+	for name, content := range entries {
+		hdr := &tar.Header{
+			Name: name,
+			Mode: 0o644,
+			Size: int64(len(content)),
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tw.Write([]byte(content)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// createGz creates a single-file .gz archive at gzPath. The decompressed file
+// keeps gzPath's base name without the .gz suffix.
+func createGz(t *testing.T, gzPath string, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(gzPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(gzPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	gz := gzip.NewWriter(f)
+	if _, err := gz.Write([]byte(content)); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestCopyDLCsExtractsTar verifies a .tar in the source is extracted into the
+// game root.
+func TestCopyDLCsExtractsTar(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "dlcs_source")
+	dst := filepath.Join(t.TempDir(), "game_root")
+
+	createTar(t, filepath.Join(src, "EP06.tar"), map[string]string{
+		"EP06/data.package": "tar-data",
+	})
+
+	res, err := CopyDLCs(src, dst)
+	if err != nil {
+		t.Fatalf("CopyDLCs error: %v", err)
+	}
+
+	if !fileExists(filepath.Join(dst, "EP06", "data.package")) {
+		t.Error("EP06/data.package not extracted from tar to game root")
+	}
+	if res.ExtractedZips < 1 {
+		t.Errorf("ExtractedZips = %d, want >= 1", res.ExtractedZips)
+	}
+}
+
+// TestCopyDLCsExtractsTarGz verifies a .tar.gz in the source is extracted into
+// the game root.
+func TestCopyDLCsExtractsTarGz(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "dlcs_source")
+	dst := filepath.Join(t.TempDir(), "game_root")
+
+	createTarGz(t, filepath.Join(src, "EP07.tar.gz"), map[string]string{
+		"EP07/data.package": "targz-data",
+	})
+
+	res, err := CopyDLCs(src, dst)
+	if err != nil {
+		t.Fatalf("CopyDLCs error: %v", err)
+	}
+
+	if !fileExists(filepath.Join(dst, "EP07", "data.package")) {
+		t.Error("EP07/data.package not extracted from tar.gz to game root")
+	}
+	if res.ExtractedZips < 1 {
+		t.Errorf("ExtractedZips = %d, want >= 1", res.ExtractedZips)
+	}
+}
+
+// TestCopyModsExtractsGz verifies a single-file .gz in the source is
+// decompressed into the Mods folder with the .gz suffix dropped.
+func TestCopyModsExtractsGz(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "mods_source")
+	dst := filepath.Join(t.TempDir(), "game", "Mods")
+
+	createGz(t, filepath.Join(src, "CC.package.gz"), "decompressed-mod")
+
+	res, err := CopyMods(src, dst)
+	if err != nil {
+		t.Fatalf("CopyMods error: %v", err)
+	}
+
+	// The decompressed file keeps the base name without .gz.
+	if !fileExists(filepath.Join(dst, "CC.package")) {
+		t.Error("CC.package not decompressed into Mods folder")
+	}
+	if res.ExtractedZips < 1 {
+		t.Errorf("ExtractedZips = %d, want >= 1", res.ExtractedZips)
+	}
+}
+
+// TestCopyModsExtractsTgz verifies a .tgz in the source is extracted into the
+// Mods folder.
+func TestCopyModsExtractsTgz(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "mods_source")
+	dst := filepath.Join(t.TempDir(), "game", "Mods")
+
+	createTarGz(t, filepath.Join(src, "modpack.tgz"), map[string]string{
+		"mods/CC.package": "tgz-mod",
+	})
+
+	res, err := CopyMods(src, dst)
+	if err != nil {
+		t.Fatalf("CopyMods error: %v", err)
+	}
+
+	if !fileExists(filepath.Join(dst, "mods", "CC.package")) {
+		t.Error("CC.package not extracted from tgz into Mods folder")
+	}
+	if res.ExtractedZips < 1 {
+		t.Errorf("ExtractedZips = %d, want >= 1", res.ExtractedZips)
+	}
+}
+
+// TestExtractNonExistentArchive verifies an unsupported/missing archive type
+// returns an error through extractArchive.
+func TestExtractNonExistentArchive(t *testing.T) {
+	if err := extractArchive("/nonexistent/file.rar", t.TempDir()); err == nil {
+		t.Error("expected error for unsupported archive format")
 	}
 }
 

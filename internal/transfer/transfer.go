@@ -115,8 +115,9 @@ func extractNested(archivePath, dst string, depth int, res *Result) error {
 	}
 
 	// Recurse into any archives found inside the destination produced by this
-	// extraction. Nested archive files are removed after successful extraction
-	// to keep the destination clean.
+	// extraction. Nested archive files are extracted into their parent folder
+	// so their relative structure is preserved, and removed after successful
+	// extraction to keep the destination clean.
 	return filepath.Walk(dst, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -128,7 +129,10 @@ func extractNested(archivePath, dst string, depth int, res *Result) error {
 		if isSamePath(p, archivePath) {
 			return nil
 		}
-		if err := extractNested(p, dst, depth+1, res); err != nil {
+		// Extract into the archive's parent directory so nested content keeps
+		// its relative location (e.g. nested/inner.zip -> nested/GP08/...).
+		parent := filepath.Dir(p)
+		if err := extractNested(p, parent, depth+1, res); err != nil {
 			return err
 		}
 		res.ExtractedZips++

@@ -21,8 +21,8 @@ func sims4Candidates(inst *Installation) []string {
 		prefix := inst.PrefixPath
 		compatData := filepath.Dir(filepath.Dir(prefix)) // <library>/steamapps/compatdata
 		if strings.HasSuffix(filepath.ToSlash(compatData), "compatdata") {
-			steamapps := filepath.Dir(compatData)                      // <library>/steamapps
-			common := filepath.Join(filepath.Dir(steamapps), "common") // <library>/common
+			steamapps := filepath.Dir(compatData)        // <library>/steamapps
+			common := filepath.Join(steamapps, "common") // <library>/steamapps/common
 			if root := lookForTheSims4(common); root != "" {
 				candidates = append(candidates, root)
 			}

@@ -27,7 +27,21 @@
 - [x] Menu options to transfer DLCs and mods
 - [x] Menu option to show/edit paths
 
-## 6. Verify
+## 6. Bug fixes
+- [x] Fix Steam Proton `Sims4Root` detection (common folder path)
+- [x] Fix nested archive extraction to preserve relative structure
+
+## 7. Tests
+- [x] `transfer` — basic zip/tar/tar.gz/gz extraction tests
+- [x] `unlocker` — install/uninstall/config operation tests
+- [x] `finder` — Linux and Windows Sims4 root + Mods detection tests
+  - [x] Linux: flatpak Steam Proton layout (game root for DLCs + Mods folder)
+  - [x] Windows: Program Files candidates + Documents Mods folder
+  - [x] `sims4_linux_test.go` (build tag linux) and `sims4_windows_test.go` (build tag windows)
+
+## 8. Verify
 - [x] `go build ./...` (Linux)
 - [x] `GOOS=windows go build ./...` (cross-check)
 - [x] `go vet ./...`
+- [x] `go test ./...`
+- [x] `GOOS=windows go test -c ./internal/finder/` (Windows test compile)
