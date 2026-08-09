@@ -8,14 +8,34 @@ import (
 )
 
 func find() ([]Installation, error) {
-	var result []Installation
-
-	result = append(result, findWine()...)
+	result := findWine()
 	result = append(result, findSteam()...)
 	result = append(result, findLutris()...)
 	result = append(result, findBottles()...)
 
-	return result, nil
+	return dedupeInstalls(result), nil
+}
+
+// dedupeInstalls removes installations that share the same prefix path.
+// The flatpak Steam setup exposes the same prefix through several Steam paths
+// (e.g. ~/.var/app/com.valvesoftware.Steam/.local/share/Steam and
+// ~/.var/app/com.valvesoftware.Steam/.steam/steam), producing duplicates.
+func dedupeInstalls(installs []Installation) []Installation {
+	seen := make(map[string]bool)
+	result := make([]Installation, 0, len(installs))
+	for _, inst := range installs {
+		key := inst.PrefixPath
+		if key == "" {
+			// Fall back to the client path for Windows-like entries.
+			key = inst.ClientPath
+		}
+		if key == "" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		result = append(result, inst)
+	}
+	return result
 }
 
 // checkPrefix verifies if the given prefix contains an EA app or Origin

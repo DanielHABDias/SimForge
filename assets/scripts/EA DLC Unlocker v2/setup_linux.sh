@@ -33,7 +33,7 @@ KNOWN_IDS=(
   "1222670:The Sims 4"
 )
 
-ea_app_parent="drive_c/Program Files/Electronic Arts/EA Desktop/13.735.2.6250"
+ea_app_parent="drive_c/Program Files/Electronic Arts/EA Desktop/13.764.0.6277-1785954262"
 unlocker_dir="anadius/EA DLC Unlocker v2"
 
 DLL_NAME="version.dll"

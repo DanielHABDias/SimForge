@@ -55,6 +55,60 @@ func (m *Manager) IsInstalled() bool {
 		fileExists(filepath.Join(m.Installation.ConfigPath, "config.ini"))
 }
 
+// VerificationItem describes a single check performed during verification.
+type VerificationItem struct {
+	Name    string // human-readable label (e.g. "Primary DLL")
+	Path    string // the path that was checked
+	OK      bool   // whether the check passed
+	Missing bool   // whether the expected file/dir was absent
+}
+
+// VerificationReport summarises the state of the unlocker installation.
+type VerificationReport struct {
+	Installation finder.Installation
+	Items        []VerificationItem
+}
+
+// Verify checks whether the EA Unlocker changes were actually applied to the
+// prefix: the DLL in the client (and staged EA app folder), the main config,
+// and the version DLL override in user.reg. It never modifies anything.
+func (m *Manager) Verify() VerificationReport {
+	rep := VerificationReport{Installation: m.Installation}
+	cfgIni := filepath.Join(m.Installation.ConfigPath, "config.ini")
+
+	checks := []struct {
+		name string
+		path string
+	}{
+		{"Primary DLL", m.Installation.DllPath},
+		{"Staged DLL", m.Installation.DllPath2},
+		{"Main config (config.ini)", cfgIni},
+	}
+	for _, c := range checks {
+		rep.Items = append(rep.Items, VerificationItem{
+			Name:    c.name,
+			Path:    c.path,
+			OK:      c.path != "" && fileExists(c.path),
+			Missing: c.path != "" && !fileExists(c.path),
+		})
+	}
+
+	// Config folder.
+	cfgDirOK := directoryExists(m.Installation.ConfigPath)
+	rep.Items = append(rep.Items, VerificationItem{
+		Name:    "Config folder",
+		Path:    m.Installation.ConfigPath,
+		OK:      cfgDirOK,
+		Missing: !cfgDirOK,
+	})
+
+	// DLL override check is platform-specific (Linux: user.reg, Windows: the
+	// `version=native,builtin` override applied via the DLL loader).
+	rep.Items = append(rep.Items, verifyOverride(m)...)
+
+	return rep
+}
+
 // Install installs the unlocker: copies the DLL to the client (and staged
 // directory for EA app) and copies the main config.
 func (m *Manager) Install() error {

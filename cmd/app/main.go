@@ -147,6 +147,10 @@ func runMenu(inst *finder.Installation, cfg *config.Config) {
 			handleTransferMods(inst, cfg)
 		case "8":
 			handleEditConfig(cfg)
+		case "9":
+			handleCheckPaths(inst, cfg)
+		case "a":
+			handleVerifyUnlocker(mgr)
 		case "q":
 			return
 		default:
@@ -360,6 +364,85 @@ func handleEditConfig(cfg *config.Config) {
 		return
 	}
 	fmt.Println("\x1b[32mConfiguration saved!\x1b[0m")
+	waitEnter()
+}
+
+// handleVerifyUnlocker verifies that the EA DLC unlocker changes were applied
+// to the selected prefix and prints a human-readable report.
+func handleVerifyUnlocker(mgr *unlocker.Manager) {
+	fmt.Println("Verifying EA DLC Unlocker installation...")
+	report := mgr.Verify()
+
+	for _, item := range report.Items {
+		status := "\x1b[32mOK\x1b[0m"
+		if !item.OK {
+			status = "\x1b[31mFAILED\x1b[0m"
+			if item.Missing {
+				status = "\x1b[31mMISSING\x1b[0m"
+			}
+		}
+		path := item.Path
+		if path == "" {
+			path = "—"
+		}
+		fmt.Printf("  %-35s %s\n", item.Name+":", status)
+		fmt.Printf("    %s\n", path)
+	}
+
+	fmt.Println()
+	fmt.Println("\x1b[36m--- Detected paths ---\x1b[0m")
+	inst := report.Installation
+	fmt.Printf("  Launcher:      %s\n", orNA(inst.Launcher))
+	fmt.Printf("  Prefix:        %s\n", orNA(inst.PrefixPath))
+	fmt.Printf("  Client:        %s\n", orNA(inst.ClientPath))
+	fmt.Printf("  Primary DLL:   %s\n", orNA(inst.DllPath))
+	fmt.Printf("  Staged DLL:    %s\n", orNA(inst.DllPath2))
+	fmt.Printf("  Config folder: %s\n", orNA(inst.ConfigPath))
+	fmt.Printf("  Logs folder:   %s\n", orNA(inst.LogsPath))
+
+	waitEnter()
+}
+
+// handleCheckPaths shows all detected paths for the current prefix and the
+// configured dlc/mods source paths, letting the user correct them if needed.
+func handleCheckPaths(inst *finder.Installation, cfg *config.Config) {
+	fmt.Println("\x1b[36m--- Installation paths ---\x1b[0m")
+	fmt.Printf("  Launcher:      %s\n", orNA(inst.Launcher))
+	fmt.Printf("  Prefix:        %s\n", orNA(inst.PrefixPath))
+	fmt.Printf("  Client:        %s\n", orNA(inst.ClientPath))
+	fmt.Printf("  Primary DLL:   %s\n", orNA(inst.DllPath))
+	fmt.Printf("  Staged DLL:    %s\n", orNA(inst.DllPath2))
+	fmt.Printf("  Configs folder: %s\n", orNA(inst.ConfigPath))
+	fmt.Printf("  Logs folder:   %s\n", orNA(inst.LogsPath))
+	fmt.Printf("  Sims 4 root:   %s\n", orNA(inst.Sims4Root))
+	fmt.Printf("  Sims 4 Mods:   %s\n", orNA(inst.Sims4Mods))
+
+	fmt.Println()
+	fmt.Println("\x1b[36m--- Config ---\x1b[0m")
+	fmt.Printf("  dlc_path:      %s\n", orNA(cfg.DLCPath))
+	fmt.Printf("  mods_path:     %s\n", orNA(cfg.ModsPath))
+	fmt.Printf("  (config file: %s)\n", config.Path())
+
+	fmt.Println()
+	choice := readInput("Edit The Sims 4 paths? [y/N]: ")
+	if !strings.EqualFold(choice, "y") {
+		waitEnter()
+		return
+	}
+
+	if inst.Sims4Root == "" || strings.EqualFold(readInput("Edit The Sims 4 game root? [y/N]: "), "y") {
+		newRoot := promptAdditive("The Sims 4 game root: ")
+		if newRoot != "" {
+			inst.Sims4Root = newRoot
+		}
+	}
+	if inst.Sims4Mods == "" || strings.EqualFold(readInput("Edit The Sims 4 Mods folder? [y/N]: "), "y") {
+		newMods := promptAdditive("The Sims 4 Mods folder: ")
+		if newMods != "" {
+			inst.Sims4Mods = newMods
+		}
+	}
+	fmt.Println("\x1b[32mPaths updated for this session.\x1b[0m")
 	waitEnter()
 }
 
